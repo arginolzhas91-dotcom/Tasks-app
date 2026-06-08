@@ -1,0 +1,9 @@
+{
+  "name": "Задачи",
+  "short_name": "Задачи",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F0EBE3",
+  "theme_color": "#F0EBE3",
+  "orientation": "portrait"
+}
