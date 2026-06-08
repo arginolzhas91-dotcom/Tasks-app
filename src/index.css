@@ -1,0 +1,30 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #F0EBE3;
+  --bg2:       #E8E1D8;
+  --bg3:       #DDD5C8;
+  --border:    #CEC5B8;
+  --text:      #1E1A16;
+  --text2:     #6A6058;
+  --text3:     #A09080;
+  --accent:    #8B3A2A;
+}
+
+html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'IBM Plex Mono', monospace;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overscroll-behavior: none;
+}
+
+input, textarea, select, button { font-family: inherit; }
+img { max-width: 100%; display: block; }
+
+::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+* { -webkit-tap-highlight-color: transparent; }
