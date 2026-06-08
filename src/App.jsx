@@ -1,23 +1,27 @@
 import { useState, useEffect } from 'react'
-import { ref as dbRef, onValue } from 'firebase/database'
+import { ref as dbRef, onValue, set } from 'firebase/database'
 import { db } from './firebase'
 import Login from './components/Login'
 import Tasks from './components/Tasks'
 import History from './components/History'
 import Birthdays from './components/Birthdays'
+import Settings from './components/Settings'
+import { DEFAULT_CATEGORIES } from './users'
 
 const TABS = [
-  { id: 'tasks', label: 'Задачи', icon: '◈' },
-  { id: 'history', label: 'История', icon: '◷' },
-  { id: 'birthdays', label: 'Команда', icon: '◉' },
+  { id: 'tasks',     label: 'Задачи',    icon: '◈' },
+  { id: 'history',   label: 'История',   icon: '◷' },
+  { id: 'birthdays', label: 'Команда',   icon: '◉' },
+  { id: 'settings',  label: 'Настройки', icon: '◎' },
 ]
 
 export default function App() {
-  const [user, setUser] = useState(null)
-  const [tab, setTab] = useState('tasks')
-  const [tasks, setTasks] = useState({})
-  const [birthdays, setBirthdays] = useState({})
-  const [loading, setLoading] = useState(true)
+  const [user, setUser]             = useState(null)
+  const [tab, setTab]               = useState('tasks')
+  const [tasks, setTasks]           = useState({})
+  const [birthdays, setBirthdays]   = useState({})
+  const [categories, setCategories] = useState(DEFAULT_CATEGORIES)
+  const [loading, setLoading]       = useState(true)
 
   useEffect(() => {
     try { const s = localStorage.getItem('session'); if (s) setUser(JSON.parse(s)) } catch {}
@@ -25,17 +29,28 @@ export default function App() {
 
   useEffect(() => {
     if (!user) return
-    const u1 = onValue(dbRef(db, 'tasks'), snap => { setTasks(snap.val() || {}); setLoading(false) })
-    const u2 = onValue(dbRef(db, 'birthdays'), snap => { setBirthdays(snap.val() || {}) })
-    return () => { u1(); u2() }
+    const u1 = onValue(dbRef(db, 'tasks'),      snap => { setTasks(snap.val() || {}); setLoading(false) })
+    const u2 = onValue(dbRef(db, 'birthdays'),  snap => { setBirthdays(snap.val() || {}) })
+    const u3 = onValue(dbRef(db, 'categories'), snap => {
+      const val = snap.val()
+      if (val && Array.isArray(val)) setCategories(val)
+      else setCategories(DEFAULT_CATEGORIES)
+    })
+    return () => { u1(); u2(); u3() }
   }, [user])
 
   function login(u) { setUser(u); try { localStorage.setItem('session', JSON.stringify(u)) } catch {} }
   function logout() { setUser(null); try { localStorage.removeItem('session') } catch {} }
 
+  async function saveCategories(cats) {
+    setCategories(cats)
+    await set(dbRef(db, 'categories'), cats)
+  }
+
   if (!user) return <Login onLogin={login} />
 
   const openCount = Object.values(tasks).filter(t => !t.done).length
+  const visibleTabs = user.role === 'admin' ? TABS : TABS.filter(t => t.id !== 'settings')
 
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
@@ -46,15 +61,14 @@ export default function App() {
           <button onClick={logout} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 10px', fontSize: 10, color: 'var(--text3)', cursor: 'pointer', letterSpacing: 1 }}>выйти</button>
         </div>
       </div>
-
       <div style={{ flex: 1, overflowY: 'auto' }}>
-        {tab === 'tasks' && <Tasks user={user} tasks={tasks} />}
-        {tab === 'history' && <History user={user} tasks={tasks} />}
+        {tab === 'tasks'     && <Tasks     user={user} tasks={tasks} categories={categories} />}
+        {tab === 'history'   && <History   user={user} tasks={tasks} categories={categories} />}
         {tab === 'birthdays' && <Birthdays user={user} birthdays={birthdays} />}
+        {tab === 'settings'  && <Settings  user={user} categories={categories} onSave={saveCategories} />}
       </div>
-
       <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'var(--bg)', borderTop: '1px solid var(--border)', display: 'flex', paddingBottom: 'env(safe-area-inset-bottom)', zIndex: 50 }}>
-        {TABS.map(t => {
+        {visibleTabs.map(t => {
           const active = tab === t.id
           const badge = t.id === 'tasks' && openCount > 0 ? openCount : null
           return (
